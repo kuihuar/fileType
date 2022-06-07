@@ -1,30 +1,15 @@
 package libmagic
 
-
-/*
-	#cgo LDFLAGS: -lmagic
-	#include <magic.h>
-	#include <stdlib.h>
-	static magic_t f(void* x) {
-   		return (magic_t)x;
-   }
-*/
+// #cgo LDFLAGS: -L./lib -lmagic
+// #include <stdlib.h>
+// #include <include/magic.h>
 import "C"
 import (
-	"errors"
-	"os"
-	"path"
-	"unsafe"
+"os"
+"path"
+"unsafe"
 )
-// https://github.com/vimeo/go-magic/tree/master/magic this file from git
-// https://github.com/Velocidex/go-magic //look
-// https://docs.velociraptor.app/blog/
-// https://github.com/file/file
-// https://github.com/kwilczynski/go-magic/blob/main/magic.go  // look
-//CGO_ENABLED=1 CGO_LDFLAGS="-L/opt/homebrew/Cellar/libmagic/5.40/lib" go build main.go
-//https://lzfblog.cn/?p=475  手动指定库
-// explain https://man7.org/linux/man-pages/man3/libmagic.3.html
-// nolint: golint
+
 const (
 	MAGIC_NONE              = C.MAGIC_NONE
 	MAGIC_DEBUG             = C.MAGIC_DEBUG
@@ -40,8 +25,6 @@ const (
 	MAGIC_MIME_ENCODING     = C.MAGIC_MIME_ENCODING
 	MAGIC_MIME              = C.MAGIC_MIME
 	MAGIC_APPLE             = C.MAGIC_APPLE
-	MAGIC_EXTENSION         = C.MAGIC_EXTENSION
-	MAGIC_COMPRESS_TRANSP   = C.MAGIC_COMPRESS_TRANSP
 	MAGIC_NO_CHECK_COMPRESS = C.MAGIC_NO_CHECK_COMPRESS
 	MAGIC_NO_CHECK_TAR      = C.MAGIC_NO_CHECK_TAR
 	MAGIC_NO_CHECK_SOFT     = C.MAGIC_NO_CHECK_SOFT
@@ -55,8 +38,6 @@ const (
 	MAGIC_NO_CHECK_FORTRAN  = C.MAGIC_NO_CHECK_FORTRAN
 	MAGIC_NO_CHECK_TROFF    = C.MAGIC_NO_CHECK_TROFF
 )
-
-// nolint: golint
 const (
 	MAGIC_NO_CHECK_BUILTIN = MAGIC_NO_CHECK_COMPRESS |
 		MAGIC_NO_CHECK_TAR |
@@ -68,103 +49,83 @@ const (
 		MAGIC_NO_CHECK_ENCODING
 )
 
-type Magic uintptr
+type Magic C.magic_t
 
-var locations = []string{
-	"/usr/share/misc/magic.mgc",
-	"/usr/share/file/magic.mgc",
+var system_mgc_locations = []string{
+	"/usr/share/misc/magic.mgc",//linux
+	"/usr/share/file/magic.mgc",// mac
 	"/usr/share/magic/magic.mgc",
 }
 
 /* Find the real magic file location */
 func GetDefaultDir() string {
 	var f string
-	found := false
-	for _, f = range locations {
+
+	found_mgc := false
+	for _, f = range system_mgc_locations {
 		fi, err := os.Lstat(f)
 		if err == nil && fi.Mode()&os.ModeSymlink != os.ModeSymlink {
-			found = true
+			found_mgc = true
 			break
 		}
 	}
-	if found {
+	if found_mgc {
 		return path.Dir(f)
+	} else {
+		return ""
 	}
-	return ""
 }
 
 func Open(flags int) Magic {
-	cookie := Magic(unsafe.Pointer(C.magic_open(C.int(flags))))
+	cookie := (Magic)(C.magic_open(C.int(flags)))
 	return cookie
 }
 
-func (m Magic) Close() error {
-	C.magic_close(magic(m))
-	return nil
+func Close(cookie Magic) {
+	C.magic_close((C.magic_t)(cookie))
 }
 
-func (m Magic) Error() string {
-	s := C.magic_error(magic(m))
+func Error(cookie Magic) string {
+	s := (C.magic_error((C.magic_t)(cookie)))
 	return C.GoString(s)
 }
-func magic(x Magic) C.magic_t {
-	return C.magic_t(unsafe.Pointer(x))
+
+func Errno(cookie Magic) int {
+	return (int)(C.magic_errno((C.magic_t)(cookie)))
 }
 
-func (m Magic) Errno() int {
-	return (int)(C.magic_errno(magic(m)))
-}
-
-func (m Magic) File(filename string) string {
+func File(cookie Magic, filename string) string {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
-	return C.GoString(C.magic_file(magic(m), cfilename))
+	return C.GoString(C.magic_file((C.magic_t)(cookie), cfilename))
 }
 
-func (m Magic) Buffer(b []byte) string {
+func Buffer(cookie Magic, b []byte) string {
 	length := C.size_t(len(b))
-	return C.GoString(C.magic_buffer(magic(m), unsafe.Pointer(&b[0]), length))
+	return C.GoString(C.magic_buffer((C.magic_t)(cookie), unsafe.Pointer(&b[0]), length))
 }
 
-func (m Magic) SetFlags(flags int) int {
-	return (int)(C.magic_setflags(magic(m), C.int(flags)))
+func SetFlags(cookie Magic, flags int) int {
+	return (int)(C.magic_setflags((C.magic_t)(cookie), C.int(flags)))
 }
 
-func (m Magic) GetFlags() int {
-	return (int)(C.magic_getflags(magic(m)))
-}
-
-func (m Magic) Check(filename string) error {
+func Check(cookie Magic, filename string) int {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
-	return m.err((int)(C.magic_check(magic(m), cfilename)))
+	return (int)(C.magic_check((C.magic_t)(cookie), cfilename))
 }
 
-func (m Magic) Compile(filename string) error {
+func Compile(cookie Magic, filename string) int {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
-	return m.err((int)(C.magic_compile(magic(m), cfilename)))
+	return (int)(C.magic_compile((C.magic_t)(cookie), cfilename))
 }
 
-func (m Magic) Load(filename string) error {
+func Load(cookie Magic, filename string) int {
 	if filename == "" {
-		return m.err((int)(C.magic_load(magic(m), nil)))
+		return (int)(C.magic_load((C.magic_t)(cookie), nil))
 	}
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
-	return m.err((int)(C.magic_load(magic(m), cfilename)))
-}
-func (m Magic) err(errno int) error {
-	if errno == 0 {
-		return nil
-	}
-	err := m.Error()
-	if err == "" {
-		return nil
-	}
-	return errors.New(err)
-}
-
-func Version() int {
-	return (int)(C.magic_version())
+	return (int)(C.magic_load((C.magic_t)(cookie), cfilename))
 }

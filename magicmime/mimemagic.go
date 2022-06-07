@@ -21,19 +21,22 @@
 //	 - RHEL, CentOS or Fedora: yum install file-devel
 //	 - Mac OS X: brew install libmagic
 package magicmime
-
-// #cgo CFLAGS: -I/usr/local/include
-// #cgo LDFLAGS: -lmagic -L/usr/local/lib
-// #include <stdlib.h>
-// #include <magic.h>
 import "C"
-
 import (
 	"errors"
+	"log"
 	"sync"
 	"unsafe"
 )
 
+实在不行，就将magic.mgc ADD 到固定目录//如果ADD目录，那怎么区分不同的系统呀。
+
+// #cgo LDFLAGS: -L./lib -lmagic
+// #include <stdlib.h>
+// #include <include/magic.h>
+import "C"
+
+// CGO_ENABLED=1;CGO_LDFLAGS=-L/opt/homebrew/Cellar/libmagic/5.40/lib
 // Decoder allows for doing mimetype detection using libmagic.
 type Decoder struct {
 	db C.magic_t
@@ -127,10 +130,12 @@ const (
 // when it is no longer needed.
 func NewDecoder(flags Flag) (*Decoder, error) {
 	db := C.magic_open(C.int(0))
+	log.Printf("dbbbbbbbbbbbb=%v\n",db)
 	if db == nil {
 		return nil, errors.New("error opening magic")
 	}
 	d := &Decoder{db: db}
+	log.Printf("dddd=%v\n",d)
 	if code := C.magic_setflags(db, C.int(flags)); code != 0 {
 		d.Close()
 		return nil, errors.New(C.GoString(C.magic_error(d.db)))

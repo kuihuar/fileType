@@ -1,9 +1,10 @@
 package main
 
 import (
+	"FileType/v1/libmagic"
 	"FileType/v1/magicmime"
 	"fmt"
-	"github.com/gabriel-vasile/mimetype"
+	//"github.com/gabriel-vasile/mimetype"
 	"io/ioutil"
 	"log"
 	//"os"
@@ -15,15 +16,15 @@ func main()  {
 	// OR
 	//mtype, err := mimetype.DetectReader(io.Reader)
 	// OR
-	//mtype, err := mimetype.DetectFile("/opt/homebrew/Cellar/libmagic/5.40/share/misc/magic.mgc")
-	zipFile:= "/Users/jianfenliu/Workspace/FileType/testdata/7z.7z"
-	mimeType, _ := mimetype.DetectFile(zipFile)
-	log.Printf("mtype.String()=%v\n",mimeType.String())
+	//mtype, err := mimetype.DetectFile("/opt/homebrew/Cellar/libmagic/5.40/share/misc/magic_ b.mgc")
+	//zipFile:= "/Users/jianfenliu/Workspace/FileType/testdata/7z.7z"
+	//mimeType, _ := mimetype.DetectFile(zipFile)
+	//log.Printf("mtype.String()=%v\n",mimeType.String())
 
-	decoder, err := magicmime.NewDecoder(magicmime.MAGIC_ERROR| magicmime.MAGIC_MIME)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
+	//decoder, err := magicmime.NewDecoder(magicmime.MAGIC_ERROR| magicmime.MAGIC_MIME|magicmime.MAGIC_DEBUG)
+	//if err != nil {
+	//	log.Fatal(err.Error())
+	//}
 	filePath:= "/Users/jianfenliu/Workspace/FileType/testdata/"
 	fileinfo,err := ioutil.ReadDir(filePath)
 	if err != nil{
@@ -31,13 +32,30 @@ func main()  {
 	}
 	for _, info := range fileinfo {
 		//log.Println(info.Name())
-		t,err := decoder.TypeByFile(filePath+info.Name())
-		if err != nil {
-			log.Println(err.Error())
-		}
-		fmt.Printf("%s; %s\n",filePath+info.Name()+info.Name(), t)
+		//t,err := decoder.TypeByFile(filePath+info.Name())
+		//buffer,err := ioutil.ReadFile(filePath+info.Name())
+		//if err != nil {
+		//	log.Println(err.Error())
+		//}
+		//t1, err := decoder.TypeByBuffer(buffer)
+		//if err != nil {
+		//	log.Println(err.Error())
+		//}
+		fmt.Println("====================")
+		fmt.Printf("libmagic.GetDefaultDir()=%s\n",libmagic.GetDefaultDir())
+
+		libmagic.Load(libmagic.Open(libmagic.MAGIC_NO_CHECK_BUILTIN), libmagic.GetDefaultDir())
+		t2 := libmagic.MimeFromFile(info.Name()+info.Name())
+		fmt.Printf("file=%s\t,t2=%v\n",info.Name()+info.Name(), t2)
+		//fmt.Printf("file=%s\tbyFile=%s\tbyBuf=%s, t2=%v\n",info.Name()+info.Name(), t,t1, t2)
+
+
+
+		//fmt.Printf("file=%s\tbyFile=%s\tbyBuf=%s\n",info.Name()+info.Name(), t,t1)
+		break
 	}
 	fmt.Printf("version is: %d\n", magicmime.Version())
+
 
 }
 //fmt.Printf("mtype.Extension()=%v\n",mtype.Extension())
