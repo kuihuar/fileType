@@ -29,7 +29,7 @@ import (
 	"unsafe"
 )
 
-实在不行，就将magic.mgc ADD 到固定目录//如果ADD目录，那怎么区分不同的系统呀。
+
 
 // #cgo LDFLAGS: -L./lib -lmagic
 // #include <stdlib.h>
