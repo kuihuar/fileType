@@ -30,10 +30,10 @@ import (
 )
 
 
-
-// #cgo LDFLAGS: -L./lib -lmagic
+// #cgo CFLAGS: -I/opt/homebrew/Cellar/libmagic/5.40/include
+// #cgo LDFLAGS: -L/opt/homebrew/Cellar/libmagic/5.40/lib -lmagic
 // #include <stdlib.h>
-// #include <include/magic.h>
+// #include </opt/homebrew/Cellar/libmagic/5.40/include/magic.h>
 import "C"
 
 // CGO_ENABLED=1;CGO_LDFLAGS=-L/opt/homebrew/Cellar/libmagic/5.40/lib
@@ -140,8 +140,8 @@ func NewDecoder(flags Flag) (*Decoder, error) {
 		d.Close()
 		return nil, errors.New(C.GoString(C.magic_error(d.db)))
 	}
-
-	if code := C.magic_load(db, nil); code != 0 {
+	cFile := C.CString("/Users/jianfenliu/Workspace/FileType/5.40/share/misc/magic.mgc")
+	if code := C.magic_load(db, cFile); code != 0 {
 		d.Close()
 		return nil, errors.New(C.GoString(C.magic_error(d.db)))
 	}
